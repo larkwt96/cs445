@@ -3,3 +3,5 @@ notebookcode.py
 A*grader*.tar
 A*grader*.py
 lecture*.ipynb
+*.data
+*.xlsx
