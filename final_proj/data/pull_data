@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Data comes from here:
+# https://physionet.org/physiobank/database/ptbdb/
+
+if [ ! -f dataset.tar ]; then
+    echo "Dataset not found. Downloading.."
+    wget -r --no-parent https://physionet.org/physiobank/database/ptbdb/
+    mv physionet.org/physiobank/database/ptbdb dataset
+    rm -rf physionet.org
+    tar cf dataset.tar
+fi
+
+if [ -d dataset ]; then
+    echo "Removing old dataset"
+    rm -rf dataset
+fi
+
+echo "Extracting dataset"
+tar xf dataset.tar
