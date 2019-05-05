@@ -37,8 +37,8 @@ class TestEsn(unittest.TestCase):
         esn.fit(self.ds_train)
         # test predict
         ys = esn.predict(self.ds_train, Tf=total_pts)
-        #plt.plot(self.ds, label='ds')
-        #plt.plot(ys, label='ys')
+        # plt.plot(self.ds, label='ds')
+        # plt.plot(ys, label='ys')
         # plt.show(True)
         # test rmse
         rmse = np.sqrt(np.sum((ys - self.ds)**2))
@@ -66,18 +66,18 @@ class TestEsn(unittest.TestCase):
         # train measure
         ys = esn.predict(ds[:100], Tf=350)
         rmse = np.sqrt(np.sum((ys - ds)**2))
-        #plt.plot(ds-ys, label='true')
-        #plt.plot(ys, label='pred')
+        # plt.plot(ds-ys, label='true')
+        # plt.plot(ys, label='pred')
         # plt.legend()
         # plt.show(True)
-        #self.assertGreater(pre_rmse, rmse)
+        # self.assertGreater(pre_rmse, rmse)
         return pre_rmse, rmse
 
     def test_multi_dim_test(self):
         rmse_pattern = self.run_multi_dim_test(random=False)
         rmse_random = self.run_multi_dim_test(random=True)
         self.assertGreater(rmse_random, rmse_pattern)
-        #print(rmse_random, rmse_pattern)
+        # print(rmse_random, rmse_pattern)
 
     def run_multi_dim_test(self, random=False):
         num_pts = 5000
@@ -111,3 +111,44 @@ class TestEsn(unittest.TestCase):
         # test rmse
         rmse = np.sqrt(np.sum((ys - self.ds)**2))
         return rmse
+
+    def gen_data(self, num_pts=5000):
+        us = np.random.rand(num_pts, 3)
+        ds = np.mean(us, axis=1)
+        ds[1:] += ds[:-1]
+        ds = ds[:, None]
+        return us, ds
+
+    def test_multi_fit(self):
+        amnt = 1
+        for _ in range(amnt):
+            self.run_multi_fit()
+
+    def run_multi_fit(self):
+        uss = []
+        dss = []
+        for _ in range(10):
+            us, ds = self.gen_data()
+            uss.append(us)
+            dss.append(ds)
+
+        T = uss[0].shape[0]
+        K = uss[0].shape[1]
+        L = dss[1].shape[1]
+
+        N = 50
+        esn = EchoStateNetwork(K, N, L, T0=100, alpha=.9)
+
+        # premeasure
+        ys = esn.predict(dss[-1][:int(.8*T)], uss[-1])
+        pre_rmse = np.sqrt(np.sum((ys - dss[-1])**2))
+
+        # test fit
+        esn.multi_fit(dss[:-1], uss[:-1])
+
+        # test predict
+        ys = esn.predict(dss[-1][:int(.8*T)], uss[-1])
+
+        # test rmse
+        rmse = np.sqrt(np.sum((ys - dss[-1])**2))
+        self.assertGreater(pre_rmse, rmse)
