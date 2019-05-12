@@ -1,9 +1,18 @@
 import os
-import wfdb
 import re
-import numpy as np
+from copy import deepcopy
+from itertools import product
+from random import shuffle
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pywt
+import scipy
+import scipy.signal
+import sklearn.metrics
+import wfdb
+
+from esn import EchoStateNetwork
 
 data_loc = os.path.join('data', 'dataset')
 
@@ -76,14 +85,14 @@ def split_v(V, split):
     return V[:split_ind], V[split_ind:]
 
 
-def get_xt(sub=None, split=.8, usub=None):
+def get_xt(data_sets, sub=None, split=.8, usub=None):
     print('Getting healthy features')
-    healthy_feat = get_feats(healthy_data, 0, sub=sub)
+    healthy_feat = get_feats(data_sets[0], 0, sub=sub)
     np.random.shuffle(healthy_feat)
     train_hf, test_hf = split_v(healthy_feat, split)
 
     print('Getting sick features')
-    unhealthy_feat = get_feats(unhealthy_data, 1, sub=sub)
+    unhealthy_feat = get_feats(data_sets[1], 1, sub=sub)
     np.random.shuffle(unhealthy_feat)
     train_uf, test_uf = split_v(unhealthy_feat, split)
 
