@@ -4,7 +4,7 @@ from tools import init_weights, TimeSeriesForecaster
 
 
 class EchoStateNetwork(TimeSeriesForecaster):
-    def __init__(self, K, N, L, T0=50, alpha=.8, noise=0, bias=True):
+    def __init__(self, K, N, L, T0=50, alpha=.8, noise=0, bias=True, out_con=True):
         """
         K - input units, u
         N - internal units, x (should not exceed Tf/10 to Tf/2 at risk of overfitting
@@ -18,6 +18,8 @@ class EchoStateNetwork(TimeSeriesForecaster):
         bias_K = K
         if bias:
             bias_K += 1
+        if out_con:
+            bias_K += L
         self.shapes = [
             (N, K),
             (N, N),
@@ -39,6 +41,7 @@ class EchoStateNetwork(TimeSeriesForecaster):
         self.Wout = None
         self.Wback = None
         self.bias = bias
+        self.out_con = out_con
         self.f = np.tanh
 
         # set on train
@@ -90,10 +93,15 @@ class EchoStateNetwork(TimeSeriesForecaster):
         Wout = self.Wout
         u = self.u
         x = self.x
+        y = self.y
         K = self.K
+        N = self.N
         if self.bias:
             K += 1
-        return Wout[:, :K]@u[n] + Wout[:, K:]@x[n]
+        res = Wout[:, :K]@u[n] + Wout[:, K:K+N]@x[n]
+        if self.out_con:
+            res += Wout[:, K+N:]@y[n-1]
+        return res
 
     def score(self, ds, ys, T, Tf=None, T0=None):
         """
@@ -323,7 +331,10 @@ class EchoStateNetwork(TimeSeriesForecaster):
 
             # note that M stores u and x, but not d, since it's not hooked up
             # shape = (T - T0 + 1, N)
-            M_samp = np.hstack((self.u[self.T0+1:, :], self.x[self.T0+1:, :]))
+            uvec = self.u[self.T0+1:, :]
+            xvec = self.x[self.T0+1:, :]
+            yvec = self.y[self.T0:-1, :]
+            M_samp = np.hstack((uvec, xvec, yvec))
             if self.M_samp is None:
                 self.M_samp = M_samp
             else:
